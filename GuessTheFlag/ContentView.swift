@@ -7,10 +7,12 @@
 
 import SwiftUI
 
-struct FlagImage : View {
-    var num:Int
-    var flagTapped:(Int) -> Void
-    var country:String
+struct FlagImage: View {
+    var num: Int
+    var flagTapped: (Int) -> Void
+    var country: String
+    var isAnimating: Bool
+    var isDisabled: Bool
     var body: some View {
         Button {
             flagTapped(num)
@@ -18,10 +20,33 @@ struct FlagImage : View {
             Image(country)
                 .clipShape(.buttonBorder)
                 .shadow(radius: 4)
-        }
+        }.rotation3DEffect(
+            .degrees(isAnimating ? 360 : 0),
+            axis: (
+                x: CGFloat.zero,
+                y: 1,
+                z: CGFloat.zero
+            )
+        )
+        .opacity(isDisabled ? 0.25 : 1)
+        .animation(.default, value: isAnimating)
+    }
+}
+
+struct ImportentTitle: ViewModifier {
+    func body(content: Content) -> some View {
+        content.font(.largeTitle).foregroundColor(.blue)
+    }
+}
+
+extension View {
+    func importentTitled() -> some View {
+        modifier(ImportentTitle())
     }
 }
 struct ContentView: View {
+    @State private var selectedButton: Int?
+
     @State private var showingScore: Bool = false
     @State private var showingTitle: String = ""
     @State private var userHearts: Int = 3
@@ -64,7 +89,10 @@ struct ContentView: View {
                             FlagImage(
                                 num: num,
                                 flagTapped: flagTapped,
-                                country: countries[num]
+                                country: countries[num],
+                                isAnimating: selectedButton == num,
+                                isDisabled: selectedButton != nil
+                                    && selectedButton != num
                             )
                         }
 
@@ -76,7 +104,7 @@ struct ContentView: View {
                         Color.clear.background(.regularMaterial).clipShape(
                             .rect(cornerRadius: 30))
                         VStack {
-                       
+
                             Text("Your score is \(scoreCount)")
                                 .font(.title.bold())
                                 .foregroundColor(.secondary)
@@ -91,7 +119,6 @@ struct ContentView: View {
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.large)
-                  
 
                         }
                     }
@@ -109,8 +136,7 @@ struct ContentView: View {
                 }
                 Spacer()
                 Text("Your score is \(scoreCount)")
-                    .font(.title.bold())
-                    .foregroundColor(.white)
+                    .importentTitled().bold()
                 Spacer()
                 Spacer()
             }.padding()
@@ -123,11 +149,13 @@ struct ContentView: View {
         }
     }
     func flagTapped(_ number: Int) {
+        selectedButton = number
         if number == correctAnswer {
             showingTitle = "Correct answer!"
             scoreCount += 1
         } else {
-            showingTitle = "Wrong answer \n Thats the flag of \(countries[number])"
+            showingTitle =
+                "Wrong answer \n Thats the flag of \(countries[number])"
             userHearts -= 1
 
         }
@@ -138,9 +166,10 @@ struct ContentView: View {
     func askQuestion() {
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
+        selectedButton = nil
     }
-    
-    func restartGame (){
+
+    func restartGame() {
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
         userHearts = 3
